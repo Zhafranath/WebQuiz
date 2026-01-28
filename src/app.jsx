@@ -307,10 +307,10 @@ function HomePage({ go, setBank, setMeta }){
             <div className="absolute -top-10 -right-10 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
             <div className="relative">
               <div className="text-3xl md:text-4xl font-extrabold leading-tight">
-                Bikin sesi kuis yang seru, cepat, dan penuh animasi ✨
+                Upload Soal dan mulai Kuisnya
               </div>
               <p className="text-white/70 mt-3 max-w-2xl">
-                Siapkan soal dalam CSV sesuai template, upload, lalu pilih mode permainan. Soal & opsi jawaban akan diacak otomatis.
+                Siapkan soal dalam CSV sesuai template, upload, lalu pilih mode permainan.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Badge>Classic</Badge>
