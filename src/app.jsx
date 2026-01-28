@@ -346,7 +346,7 @@ function HomePage({ go, setBank, setMeta }){
           <div className="card glow rounded-3xl p-6">
             <div className="font-extrabold text-lg">Demo Cepat</div>
             <p className="text-white/70 mt-2">
-              Tidak punya CSV? Pakai file <span className="text-white font-semibold">contoh_soal.csv</span> dari folder ZIP.
+              Tidak punya CSV? Pakai file <span className="text-white font-semibold">tinggal klik contoh_soal.csv</span>.
             </p>
             <div className="mt-4 grid gap-3">
               <GhostButton onClick={() => {
