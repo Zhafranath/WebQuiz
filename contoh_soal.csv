@@ -1,0 +1,7 @@
+id,kategori,pertanyaan,pilihan_a,pilihan_b,pilihan_c,pilihan_d,jawaban
+1,Matematika,2+3=?,4,5,6,7,B
+2,Sains,"Planet terdekat dari Matahari adalah...,",Bumi,Mars,Merkurius,Jupiter,C
+3,Bahasa Indonesia,"Sinonim kata ""cepat"" adalah...,",Lambat,Kilat,Lesu,Redup,B
+4,Sejarah,Proklamasi kemerdekaan Indonesia terjadi pada tanggal...,17 Agustus 1945,1 Juni 1945,20 Mei 1908,10 November 1945,A
+5,Geografi,Ibu kota Jepang adalah...,Seoul,Tokyo,Beijing,Bangkok,B
+6,Teknologi,HTML kepanjangan dari...,HyperText Markup Language,HighText Machine Language,Hyperlinks Text Mark Language,Home Tool Markup Language,A
