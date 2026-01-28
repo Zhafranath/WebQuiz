@@ -307,10 +307,10 @@ function HomePage({ go, setBank, setMeta }){
             <div className="absolute -top-10 -right-10 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
             <div className="relative">
               <div className="text-3xl md:text-4xl font-extrabold leading-tight">
-                Upload Soal untuk memulai Kuis
+                Bikin sesi kuis yang seru, cepat, dan penuh animasi ✨
               </div>
               <p className="text-white/70 mt-3 max-w-2xl">
-                Siapkan soal dalam CSV sesuai template, upload, lalu pilih mode permainan.
+                Siapkan soal dalam CSV sesuai template, upload, lalu pilih mode permainan. Soal & opsi jawaban akan diacak otomatis.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Badge>Classic</Badge>
@@ -581,7 +581,9 @@ function QuizPage({ go, bank, mode, config, session, setSession }){
   const [selected, setSelected] = useState(null); // "A"/"B"/"C"/"D"
   const [reveal, setReveal] = useState(false);
   const [shake, setShake] = useState(false);
-
+  const [openJudge, setOpenJudge] = useState(false);
+  const [judgeTeam, setJudgeTeam] = useState(0);
+  const [pendingPick, setPendingPick] = useState(null);
   const idx = session.currentIndex;
   const q = bank[idx];
 
@@ -651,35 +653,45 @@ function QuizPage({ go, bank, mode, config, session, setSession }){
   const canAnswer = !reveal;
 
   const choose = (optKey) => {
-    if(!canAnswer) return;
+  if(!canAnswer) return;
+
+  // Cerdas Cermat Babak 2: skor manual (pilih tim + benar/salah)
+  if(mode === "cerdas" && session.cerdasPhase === 2){
     setSelected(optKey);
-    const correct = optKey === q.answerKey;
-    setReveal(true);
+    setReveal(true);          // boleh tetap reveal supaya opsi terkunci
+    setPendingPick({ optKey });
+    setJudgeTeam(session.turnTeam ?? 0); // default tim aktif saat ini
+    setOpenJudge(true);
+    return;
+  }
 
-    setSession(sess => {
-      const answers = [...sess.answers];
-      answers[idx] = { chosen: optKey, correct, answerKey: q.answerKey };
-      let teamScores = sess.teamScores ? [...sess.teamScores] : null;
-      let lives = sess.lives;
+  // selain itu: perilaku lama (otomatis)
+  setSelected(optKey);
+  const correct = optKey === q.answerKey;
+  setReveal(true);
 
-      if(mode === "team" || mode === "cerdas"){
-        if(teamScores){
-          if(correct) teamScores[sess.turnTeam] += 1;
-        }
-      }
+  setSession(sess => {
+    const answers = [...sess.answers];
+    answers[idx] = { chosen: optKey, correct, answerKey: q.answerKey };
 
-      if(mode === "survival"){
-        if(!correct) lives = Math.max(0, lives - 1);
-      }
+    let teamScores = sess.teamScores ? [...sess.teamScores] : null;
+    let lives = sess.lives;
 
-      return { ...sess, answers, teamScores, lives };
-    });
-
-    if(!correct){
-      setShake(true);
-      setTimeout(()=>setShake(false), 650);
+    if(mode === "team" || mode === "cerdas"){
+      if(teamScores && correct) teamScores[sess.turnTeam] += 1;
     }
-  };
+    if(mode === "survival" && !correct){
+      lives = Math.max(0, lives - 1);
+    }
+
+    return { ...sess, answers, teamScores, lives };
+  });
+
+  if(!correct){
+    setShake(true);
+    setTimeout(()=>setShake(false), 650);
+  }
+};
 
   const goNext = () => {
     // survival: stop if lives == 0
@@ -785,6 +797,75 @@ function QuizPage({ go, bank, mode, config, session, setSession }){
           ))}
         </div>
 
+        <Modal
+            open={openJudge}
+            title="Babak 2 — Tentukan Skor"
+            onClose={() => { /* sengaja jangan close tanpa keputusan */ }}
+          >
+            <div className="space-y-4">
+              <div className="text-white/80 text-sm">
+                Pilih tim yang menjawab, lalu tentukan benar/salah.
+              </div>
+
+              <div>
+                <label className="text-sm text-white/80">Tim yang menjawab</label>
+                <select
+                  value={judgeTeam}
+                  onChange={(e)=>setJudgeTeam(parseInt(e.target.value,10))}
+                  className="mt-2 w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-white/30"
+                >
+                  {Array.from({length: config.teamCount}).map((_,i)=>(
+                    <option key={i} value={i}>Tim {i+1}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  className="rounded-2xl px-4 py-3 font-bold bg-rose-500/20 border border-rose-400/40 hover:bg-rose-500/30 transition"
+                  onClick={() => {
+                    // Salah: skor -1 untuk tim terpilih
+                    setSession(sess => {
+                      const answers = [...sess.answers];
+                      answers[idx] = { chosen: pendingPick?.optKey ?? null, correct: false, answerKey: q.answerKey, judgedTeam: judgeTeam, judgedDelta: -1 };
+
+                      const teamScores = [...(sess.teamScores ?? Array.from({length: config.teamCount}).map(()=>0))];
+                      teamScores[judgeTeam] = (teamScores[judgeTeam] ?? 0) - 1;
+
+                      return { ...sess, answers, teamScores };
+                    });
+                    setOpenJudge(false);
+                  }}
+                >
+                  Salah (-1)
+                </button>
+
+                <button
+                  className="rounded-2xl px-4 py-3 font-bold bg-emerald-500/20 border border-emerald-400/40 hover:bg-emerald-500/30 transition"
+                  onClick={() => {
+                    // Benar: skor +1 untuk tim terpilih
+                    setSession(sess => {
+                      const answers = [...sess.answers];
+                      answers[idx] = { chosen: pendingPick?.optKey ?? null, correct: true, answerKey: q.answerKey, judgedTeam: judgeTeam, judgedDelta: +1 };
+
+                      const teamScores = [...(sess.teamScores ?? Array.from({length: config.teamCount}).map(()=>0))];
+                      teamScores[judgeTeam] = (teamScores[judgeTeam] ?? 0) + 1;
+
+                      return { ...sess, answers, teamScores };
+                    });
+                    setOpenJudge(false);
+                  }}
+                >
+                  Benar (+1)
+                </button>
+              </div>
+
+              <div className="text-xs text-white/60">
+                Catatan: Setelah memilih benar/salah, kamu bisa klik Next untuk lanjut soal berikutnya.
+              </div>
+            </div>
+          </Modal>
+
         <div className="mt-7 flex items-center justify-between gap-3">
           <div className="text-white/70 text-sm">
             {reveal ? (selected === q.answerKey ? "✅ Jawaban kamu benar!" : `❌ Salah. Kunci: ${q.answerKey}`) : "Pilih salah satu jawaban."}
@@ -809,6 +890,8 @@ function QuizPage({ go, bank, mode, config, session, setSession }){
               </div>
             ))}
           </div>
+          
+
         </div>
       ) : null}
     </div>
